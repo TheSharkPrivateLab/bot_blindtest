@@ -3,7 +3,7 @@ import sqlite3
 
 class anime:
 	"""
-	concerne toutes les fonctions relatibes à la
+	concerne toutes les fonctions relatives à la
 	gestion de la base de données des animés
 	"""
 

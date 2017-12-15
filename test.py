@@ -3,8 +3,8 @@ import sqlite3
 
 class anime:
 	"""
-	concerne toutes les fonction relatif a la
-	gestion de la base de donnée des animé
+	concerne toutes les fonctions relatibes à la
+	gestion de la base de données des animés
 	"""
 
 	def __init__(self, db_name):

@@ -95,7 +95,6 @@ class Database:
 		if len(temp) == 0:
 			return None
 		for i in temp:
-			print(i)
 			result.append(i[0])
 		return tuple(result)
 

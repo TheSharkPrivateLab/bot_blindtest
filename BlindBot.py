@@ -64,18 +64,18 @@ class VoiceState:
 class DatabaseManager:
 	def __init__(self, bot, db_name):
 		self.bot = bot
-		self.db_name = db_name
+		self.database = Database(db_name)
+		self.categorie = self.get_categorie()
 
 	def get_categorie(self):
 		self.categorie = self.database.getcategorie()
 
 	@commands.command(pass_context=True, no_pm=False)
-	async def addentry(self, ctx, name : str, op : int, types : str, link : str):
+	async def addentry(self, ctx, name : str, types : str, link : str, op=0):
 		"""Add a link to the link database
 
 		Need 4 parameters to works
 		a name, the opening/ending number, the type (OST, OPENING, etc) and the link
-		the opening/ending number can(t be ignored. if you don't use it, use 0 instead.)
 		"""
 		msg = await self.bot.say('Starting...')
 		message = "Complete !"
@@ -87,15 +87,26 @@ class DatabaseManager:
 	async def listdb(self, ctx):
 		"""List all the entry from the database"""
 		msg = await self.bot.say('Collecting information...')
-		message = "```\n"
 		data = self.database.getall()
 		if len(data) == 0:
 			await self.bot.edit_message(msg, 'No entry.')
 			return
+
+		message = "```\n"
 		for i in data:
+			embed = discord.Embed(title='Test', type='rich', description='yolo')
+			embed.add_field(name='id', value=i['id'])
+			embed.add_field(name='name', value=i['name'])
+			embed.add_field(name='op', value=i['op'])
+			embed.add_field(name='type', value=i['type'])
+			embed.add_field(name='link', value=i['link'])
+
+			await self.bot.say(embed=embed)
+
 			message += self.database.msg.format(**i)
 			message += "\n"
 		message += "```"
+
 		await self.bot.edit_message(msg, message)
 
 	@commands.command(pass_context=True, no_pm=False)
@@ -119,13 +130,17 @@ class DatabaseManager:
 			await self.bot.edit_message(msg, 'No entry.')
 			return
 
-		message = "```\n"
-		for i in self.categorie:
-			message += i
-			message += '\n'
-		message += '```'
+		embed = discord.Embed(name='Categorie', description='List of all the categorie', type='rich')
 
-		await self.bot.edit_message(msg, message)
+		categorie = str()
+
+		for i in self.categorie:
+			categorie += i
+			categorie += '\n'
+
+		embed.add_field(name='Categorie',value=categorie)
+
+		await self.bot.edit_message(msg, ' ',embed=embed)
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def listbycategorie(self, ctx, categorie : str):
@@ -148,10 +163,10 @@ class Blindtest:
 
 	Works in multiple servers at once.
 	"""
-	def __init__(self, bot):
+	def __init__(self, bot, bdd_name):
 		self.bot = bot
 		self.voice_states = {}
-		self.database = Database('bdd.db')
+		self.database = Database(bdd_name)
 
 	def get_voice_state(self, server):
 		state = self.voice_states.get(server.id)
@@ -174,6 +189,9 @@ class Blindtest:
 					self.bot.loop.create_task(state.voice.disconnect())
 			except:
 				pass
+
+	def get_categorie(self):
+		self.categorie = self.database.getcategorie()
 
 	@commands.command(pass_context=True, no_pm=True)
 	async def join(self, ctx, *, channel : discord.Channel):
@@ -202,6 +220,17 @@ class Blindtest:
 			await state.voice.move_to(summoned_channel)
 
 		return True
+
+	@commands.command(pass_context=True, no_pm=True)
+	async def start(self, ctx, *categorie):
+		"""Start a Blindtest
+
+		you can select multiple categorie if you want
+		"""
+		self.categorie = self.get_categorie()
+
+
+		pass
 
 	async def play(self, ctx, *, song : str):
 		"""Plays a song.
@@ -320,10 +349,11 @@ class Blindtest:
 			skip_count = len(state.skip_votes)
 			await self.bot.say('Now playing {} [skips: {}/3]'.format(state.current, skip_count))
 
+BDD = 'bdd.db'
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description='The Blindtest Bot =)')
-bot.add_cog(Blindtest(bot))
-bot.add_cog(DatabaseManager(bot, 'bdd.db'))
+bot.add_cog(DatabaseManager(bot, BDD))
+bot.add_cog(Blindtest(bot, BDD))
 
 @bot.event
 async def on_ready():

@@ -61,6 +61,88 @@ class VoiceState:
 			self.current.player.start()
 			await self.play_next_song.wait()
 
+class DatabaseManager:
+	def __init__(self, bot, db_name):
+		self.bot = bot
+		self.db_name = db_name
+
+	def get_categorie(self):
+		self.categorie = self.database.getcategorie()
+
+	@commands.command(pass_context=True, no_pm=False)
+	async def addentry(self, ctx, name : str, op : int, types : str, link : str):
+		"""Add a link to the link database
+
+		Need 4 parameters to works
+		a name, the opening/ending number, the type (OST, OPENING, etc) and the link
+		the opening/ending number can(t be ignored. if you don't use it, use 0 instead.)
+		"""
+		msg = await self.bot.say('Starting...')
+		message = "Complete !"
+		if (self.database.addentry(name, op, link, types) == 1):
+			message = "Error: Entry already in the database."
+		await self.bot.edit_message(msg, message)
+
+	@commands.command(pass_context=True, no_pm=False)
+	async def listdb(self, ctx):
+		"""List all the entry from the database"""
+		msg = await self.bot.say('Collecting information...')
+		message = "```\n"
+		data = self.database.getall()
+		if len(data) == 0:
+			await self.bot.edit_message(msg, 'No entry.')
+			return
+		for i in data:
+			message += self.database.msg.format(**i)
+			message += "\n"
+		message += "```"
+		await self.bot.edit_message(msg, message)
+
+	@commands.command(pass_context=True, no_pm=False)
+	async def delentry(self, ctx, id : int):
+		"""Delete one entry from the database."""
+		msg = await self.bot.say('deleting entry {}...'.format(id))
+		self.database.deleteone(id)
+		await self.bot.edit_message(msg, 'Entry succesfuly deleted !')
+
+	@commands.command(pass_context=True, no_pm=False)
+	async def listcategorie(self, ctx):
+		"""List all the categorie in the database.
+
+		To add a categorie, just add a song to the database with this categorie.
+		"""
+		msg = await self.bot.say('Collecting information...')
+
+		self.get_categorie()
+
+		if self.categorie is None:
+			await self.bot.edit_message(msg, 'No entry.')
+			return
+
+		message = "```\n"
+		for i in self.categorie:
+			message += i
+			message += '\n'
+		message += '```'
+
+		await self.bot.edit_message(msg, message)
+
+	@commands.command(pass_context=True, no_pm=False)
+	async def listbycategorie(self, ctx, categorie : str):
+		"""List by categorie"""
+		msg = await self.bot.say('Collecting information...')
+
+		self.get_categorie()
+		if self.categorie is None:
+			await self.bot.edit_message(msg, 'No entry.')
+			return
+		message = "```\n"
+		for i in self.categorie:
+			message += i
+		message += "```"
+
+		await self.bot.edit_message(msg, message)
+
 class Blindtest:
 	"""Voice related commands.
 
@@ -121,67 +203,6 @@ class Blindtest:
 
 		return True
 
-	@commands.command(pass_context=True, no_pm=True)
-	async def addentry(self, ctx, name : str, op : int, types : str, link : str):
-		"""Add a link to the link database
-
-		Need 4 parameters to works
-		a name, the opening/ending number, the type (OST, OPENING, etc) and the link
-		the opening/ending number can(t be ignored. if you don't use it, use 0 instead.)
-		"""
-		msg = await self.bot.say('Starting...')
-		message = "Complete !"
-		if (self.database.addentry(name, op, link, types) == 1):
-			message = "Error: Entry already in the database."
-		await self.bot.edit_message(msg, message)
-
-	@commands.command(pass_context=True, no_pm=True)
-	async def listdb(self, ctx):
-		"""List all the entry from the database"""
-		msg = await self.bot.say('Collecting information...')
-		message = "```\n"
-		data = self.database.getall()
-		if len(data) == 0:
-			await self.bot.edit_message(msg, 'No entry.')
-			return
-		for i in data:
-			message += self.database.msg.format(**i)
-			message += "\n"
-		message += "```"
-		await self.bot.edit_message(msg, message)
-
-	@commands.command(pass_context=True, no_pm=True)
-	async def delentry(self, ctx, id : int):
-		"""Delete one entry from the database.
-
-		Need a id :
-		$delentry 1
-		"""
-		msg = await self.bot.say('deleting entry {}...'.format(id))
-		self.database.deleteone(id)
-		await self.bot.edit_message(msg, 'Entry succesfuly deleted !')
-
-	@commands.command(pass_context=True, no_pm=True)
-	async def listcategorie(self, ctx):
-		"""List all the categorie in the database.
-
-		To add a categorie, just add a song to the database with this categorie.
-		"""
-		msg = await self.bot.say('Collecting information...')
-		self.categorie = self.database.getcategorie()
-		if self.categorie == 1:
-			self.categorie = None
-			await self.bot.edit_message(msg, 'No entry.')
-			return
-		message = "```\n"
-		print(self.categorie)
-		for i in self.categorie:
-			message += i
-			message += '\n'
-		message += '```'
-		await self.bot.edit_message(msg, message)
-
-	@commands.command(pass_context=True, no_pm=True)
 	async def play(self, ctx, *, song : str):
 		"""Plays a song.
 
@@ -299,8 +320,10 @@ class Blindtest:
 			skip_count = len(state.skip_votes)
 			await self.bot.say('Now playing {} [skips: {}/3]'.format(state.current, skip_count))
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description='A playlist example for discord.py')
+
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description='The Blindtest Bot =)')
 bot.add_cog(Blindtest(bot))
+bot.add_cog(DatabaseManager(bot, 'bdd.db'))
 
 @bot.event
 async def on_ready():

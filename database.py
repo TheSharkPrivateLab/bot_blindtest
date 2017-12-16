@@ -44,7 +44,7 @@ class Database:
 		return (self.db_name)
 
 	def __call__(self):
-		return (self.printdb())
+		return (self.getall())
 
 	def get_one(self, args):
 		if (args is None):
@@ -93,7 +93,7 @@ class Database:
 		temp = cursor.fetchall()
 		conn.close()
 		if len(temp) == 0:
-			return 1
+			return None
 		for i in temp:
 			print(i)
 			result.append(i[0])

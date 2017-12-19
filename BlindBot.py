@@ -133,6 +133,14 @@ class SongState:
 		self.reponse_task = self.bot.loop.create_task(self.get_reponse())
 		self.audio_player = self.bot.loop.create_task(self.audio_player_task())
 
+	def unload(self):
+		try:
+			while not self.songs.empty():
+				self.songs.get_nowait()
+		except:
+			pass
+		self.state.skip()
+
 	def toggle_next(self):
 		self.bot.loop.call_soon_threadsafe(self.play_next_song.set)
 		self.state.toggle_next()
@@ -475,18 +483,22 @@ class Blindtest:
 		This also clears the queue.
 		"""
 		server = ctx.message.server
-		state = self.get_voice_state(server)
+		state = self.get_songs_state(server)
 
-		if state.is_playing():
-			player = state.player
+		if state.state.is_playing():
+			player = state.state.player
 			player.stop()
 
 		try:
-			state.audio_player.cancel()
+			state.state.audio_player.cancel()
 			del self.voice_states[server.id]
-			await state.voice.disconnect()
+			await state.state.voice.disconnect()
 		except:
 			pass
+
+		state.unload()
+
+		state.started = False
 
 	@commands.command(pass_context=True, no_pm=True)
 	async def skip(self, ctx):

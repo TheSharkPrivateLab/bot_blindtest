@@ -210,8 +210,8 @@ class DatabaseManager:
 	async def addentry(self, ctx, name : str, types : str, link : str, op=0):
 		"""Add a link to the link database
 
-		Need 4 parameters to works
-		a name, the opening/ending number, the type (OST, OPENING, etc) and the link
+		Need 4 parameters to work:
+		A name, the opening/ending number, the type (OST, OPENING, etc) and the link
 		"""
 		msg = await self.bot.say('Starting...')
 		message = "Complete !"
@@ -221,7 +221,7 @@ class DatabaseManager:
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def listdb(self, ctx):
-		"""List all the entry from the database"""
+		"""List every entry from the database"""
 		msg = await self.bot.say('Collecting information...')
 		data = self.database.getall()
 		if len(data) == 0:
@@ -254,7 +254,7 @@ class DatabaseManager:
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def listcategorie(self, ctx):
-		"""List all the categories in the database.
+		"""List all of the categories in the database.
 
 		To add a category, just add a song to the database with this category.
 		"""
@@ -266,7 +266,7 @@ class DatabaseManager:
 			await self.bot.edit_message(msg, 'No entry.')
 			return
 
-		embed = discord.Embed(name='Categorie', description='List of all the categorie', type='rich')
+		embed = discord.Embed(name='Categorie', description='List of every category', type='rich')
 
 		categorie = str()
 
@@ -281,7 +281,7 @@ class DatabaseManager:
 	@commands.command(pass_context=True, no_pm=False)
 	async def listbycategorie(self, ctx, categorie : str):
 		"""List by categories"""
-		msg = await self.bot.say('Collecting information...')
+		msg = await self.bot.say('Collecting informations...')
 
 		self.get_categorie()
 		if self.categorie is None:
@@ -347,7 +347,7 @@ class Blindtest:
 	async def start(self, ctx, *categorie):
 		"""Start a Blindtest
 
-		you can select multiple categorie if you want
+		you can select multiple categories if you want to
 		"""
 
 		self.categorie = self.get_categorie()

@@ -179,7 +179,7 @@ class Database:
 		cursor.execute("SELECT id, type, lien, name, nb_op FROM videos WHERE type=?", temp)
 		result = cursor.fetchall()
 		conn.close()
-		return (result)
+		return (self.get_multiple(result))
 
 	def getfromcategorierandom(self, categorie : str):
 		result = list(self.getfromcategorie(categorie))

@@ -228,22 +228,15 @@ class DatabaseManager:
 			await self.bot.edit_message(msg, 'No entry.')
 			return
 
-		message = "```\n"
 		for i in data:
-			embed = discord.Embed(title='Test', type='rich', description='yolo')
+			embed = discord.Embed(title=i['name'], type='rich', description=i['link'])
 			embed.add_field(name='id', value=i['id'])
-			embed.add_field(name='name', value=i['name'])
 			embed.add_field(name='op', value=i['op'])
 			embed.add_field(name='type', value=i['type'])
-			embed.add_field(name='link', value=i['link'])
 
 			await self.bot.say(embed=embed)
 
-			message += self.database.msg.format(**i)
-			message += "\n"
-		message += "```"
-
-		await self.bot.edit_message(msg, message)
+		await self.bot.edit_message(msg, 'Done !')
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def delentry(self, ctx, id : int):
@@ -287,12 +280,25 @@ class DatabaseManager:
 		if self.categorie is None:
 			await self.bot.edit_message(msg, 'No entry.')
 			return
-		message = "```\n"
-		for i in self.categorie:
-			message += i
-		message += "```"
 
-		await self.bot.edit_message(msg, message)
+		if categorie not in self.categorie:
+			await self.bot.edit_message(msg, 'Unknow categorie.')
+			return
+
+		data = self.database.getfromcategorie(categorie)
+		if data is None:
+			await self.bot.edit_message(msg, 'No entry in this categorie.')
+			return
+
+		for i in data:
+			embed = discord.Embed(title=i['name'], type='rich', description=i['link'])
+			embed.add_field(name='id', value=i['id'])
+			embed.add_field(name='op', value=i['op'])
+			embed.add_field(name='type', value=i['type'])
+
+			await self.bot.say(embed=embed)
+
+		await self.bot.edit_message(msg, 'Done !')
 
 class Blindtest:
 	"""Voice related commands.

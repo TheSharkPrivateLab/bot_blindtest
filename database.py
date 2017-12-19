@@ -6,7 +6,7 @@ from random import shuffle, randint
 
 class Database:
 	"""
-	concerne toutes les fonctions relatives à la
+	Concerne toutes les fonctions relatives à la
 	gestion de la base de données des animés
 	"""
 

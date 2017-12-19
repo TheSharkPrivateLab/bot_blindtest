@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sqlite3
-from random import shuffle
+from random import shuffle, randint
 
 
 class Database:
@@ -12,7 +12,7 @@ class Database:
 
 	def __init__(self, db_name):
 		self.db_name = db_name
-		self.msg = "id : {id}, anime: {name}, op: {op}, type: {type}, lien: {link}"
+		self.msg = "id : {id}, anime: {name}, op: {op}, type: {type}, lien: <{link}>"
 		conn = sqlite3.connect(self.db_name)
 		cursor = conn.cursor()
 		cursor.execute("""
@@ -56,7 +56,7 @@ class Database:
 		temp_type = cursor.fetchone()
 		conn.close()
 		if (temp_type is None):
-			temp_type = "Unknow"
+			temp_type = ('Unknow',)
 		result["id"]   = args[0]
 		result["type"] = temp_type[0]
 		result["link"] = args[2]
@@ -147,13 +147,18 @@ class Database:
 		length = self.getall()
 		if (length is None):
 			return 32
-		return (self.get_one(self.getonefromid(randint(1, len(length)))))
+		ind = randint(1, len(length)) - 1
+		one = length[ind]
+		return (self.getonefromid(one['id']))
 
 	def getallrandom(self):
 		length = self.getall()
 		if (length is None):
-			return 32
-		return (self.get_multiple(shuffle(length)))
+			return length
+		length = list(length)
+		shuffle(length)
+		length = tuple(length)
+		return (length)
 
 	def deleteone(self, id : int):
 		conn = sqlite3.connect(self.db_name)
@@ -177,7 +182,9 @@ class Database:
 		return (result)
 
 	def getfromcategorierandom(self, categorie : str):
-		return (shuffle(self.getfromcategorie(categorie)))
+		result = list(self.getfromcategorie(categorie))
+		shuffle(result)
+		return (tuple(result))
 
 	def printdbbyid(self, id : int):
 		result = self.getonefromid(id)

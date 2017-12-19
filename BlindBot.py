@@ -1,5 +1,6 @@
 import asyncio
 import discord
+from time import time, ctime
 from discord.ext import commands
 from database import Database
 
@@ -11,6 +12,14 @@ if not discord.opus.is_loaded():
 	# note that on windows this DLL is automatically provided for you
 	discord.opus.load_opus('opus')
 
+# def sort(**points, **keys):
+# 	i = 1
+# 	my_keys = list()
+# 	for k in points:
+#		my_keys.append(k)
+# 	while i <= len(points):
+# 		if
+
 class VoiceEntry:
 	def __init__(self, message, player):
 		self.requester = message.author
@@ -18,7 +27,7 @@ class VoiceEntry:
 		self.player = player
 
 	def __str__(self):
-		fmt = '*{0.title}* uploaded by {0.uploader} and requested by {1.display_name}'
+		fmt = '*something* uploaded by {0.uploader} and requested by {1.display_name}'
 		duration = self.player.duration
 		if duration:
 			fmt = fmt + ' [length: {0[0]}m {0[1]}s]'.format(divmod(duration, 60))
@@ -59,6 +68,133 @@ class VoiceState:
 			self.current = await self.songs.get()
 			await self.bot.send_message(self.current.channel, 'Now playing ' + str(self.current))
 			self.current.player.start()
+			await self.play_next_song.wait()
+
+class Clock:
+	def __init__(self):
+		self.start_time = None
+
+	def __str__(self):
+		return "started time : {0[1]}m {0[2]}".format(self.get_time())
+
+	def start(self):
+		self.start_time = self.get_time()
+
+	def stop(self):
+		self.start_time = None
+
+	def restart(self):
+		return self.start()
+
+	def get_elapsed_time(self):
+		result = list()
+		temp = self.get_time()
+		for i in range(3):
+			result.append(temp[i] - self.start_time[i])
+		return tuple(result)
+
+	def get_time(self):
+		temp = ctime(time())
+		temp = temp[11:-5]
+		result = list()
+		for i in temp.split(':'):
+			result.append(int(i))
+		return tuple(result)
+
+class SongEntry:
+	def __init__(self, **args):
+		self.requester = args['ctx'].message.author
+		self.channel = args['ctx'].message.channel
+		self.args = args
+		self.clock = Clock()
+		self.time_max = 15
+
+	def __str__(self):
+		fmt =  " __id__  : **{id}**\n"
+		fmt += "__name__ : **{name}**\n"
+		if self.args['op'] > 0:
+			fmt += " __op__  : **{op}**\n"
+			fmt += "__type__ : **{type}**\n"
+			fmt += "__link__ : **{link}**"
+			return fmt.format(**self.args)
+
+class SongState:
+	def __init__(self, bot):
+		self.started = False
+		self.state = VoiceState(bot)
+		self.current = None
+		self.volume = 0.6
+		self.bot = bot
+		self.points = dict()
+		self.keys = dict()
+		self.play_next_song = asyncio.Event()
+		self.reponse = asyncio.Event()
+		self.songs = asyncio.Queue()
+		self.reponse_task = self.bot.loop.create_task(self.get_reponse())
+		self.audio_player = self.bot.loop.create_task(self.audio_player_task())
+
+	def toggle_next(self):
+		self.bot.loop.call_soon_threadsafe(self.play_next_song.set)
+		self.state.toggle_next()
+
+	async def get_reponse(self):
+		self.reponse.clear()
+		while True:
+			msg = None
+			await self.reponse.wait()
+			if self.current is not None:
+				await self.bot.send_message(self.current.args['ctx'].message.channel, '**YOU HAVE {}s !!**'.format(self.current.time_max))
+				self.current.clock.start()
+				msg = await self.bot.wait_for_message(timeout=self.current.time_max, content=self.current.args['name'], channel=self.current.channel)
+				if msg is None:
+					await self.bot.send_message(self.current.channel, 'Sorry, that was {0}.'.format(self.current.args['name']))
+				else:
+					txt = '{0.mention} found the truth in {1[2]}'
+					if self.points.get(msg.author.id) is None:
+						self.points[msg.author.id] = 0
+						self.keys[msg.author.id] = msg.author
+					self.points[msg.author.id] += 1
+					await self.bot.send_message(self.current.channel, txt.format(msg.author, self.current.clock.get_elapsed_time()))
+				if self.songs.empty():
+					msg = 'That was the last song...\n'
+					msg += 'Thanks for playing !\n'
+					await self.bot.send_message(self.current.channel, msg)
+					msg = '------**Score :**------\n'
+					#self.points, self.keys = sort(self.points, self.keys)
+					for i,point,key in zip(range(len(self.points)), self.points, self.keys):
+						msg += '{0} : {1.mention} With __{2}__ points !\n'.format(i + 1, self.keys[key], self.points[point])
+					await self.bot.send_message(self.current.channel, msg)
+					self.started = False
+			self.state.skip()
+			self.reponse.clear()
+
+	async def audio_player_task(self):
+
+		opts = {
+			'default_search': 'auto',
+			'quiet': True,
+		}
+
+		while True:
+			self.play_next_song.clear()
+			temp = await self.songs.get()
+			try:
+				player = await self.state.voice.create_ytdl_player(temp['link'], ytdl_options=opts, after=self.toggle_next)
+			except Exception as e:
+				fmt = 'An error occurred while processing this request: ```py\n{}: {}\n```'
+				embed = discord.Embed(title='Error', description='/!\\Entry error/!\\')
+				embed.add_field(name='id', value=temp['id'])
+				embed.add_field(name='name', value=temp['name'])
+				embed.add_field(name='op', value=temp['op'])
+				embed.add_field(name='type', value=temp['type'])
+				embed.add_field(name='link', value=temp['link'])
+				await self.bot.send_message(temp['ctx'].message.channel, fmt.format(type(e).__name__, e), embed=embed)
+			else:
+				self.current = SongEntry(**temp)
+				player.volume = self.volume
+				entry = VoiceEntry(temp['ctx'].message, player)
+				await self.state.songs.put(entry)
+				self.bot.loop.call_soon_threadsafe(self.reponse.set)
 			await self.play_next_song.wait()
 
 class DatabaseManager:
@@ -166,15 +302,21 @@ class Blindtest:
 	def __init__(self, bot, bdd_name):
 		self.bot = bot
 		self.voice_states = {}
+		self.Blindtest_states = {}
 		self.database = Database(bdd_name)
 
-	def get_voice_state(self, server):
+	def get_songs_state(self, server):
 		state = self.voice_states.get(server.id)
 		if state is None:
-			state = VoiceState(self.bot)
+			state = SongState(self.bot)
 			self.voice_states[server.id] = state
 
 		return state
+
+	def get_voice_state(self, server):
+		state = self.get_songs_state(server)
+
+		return state.state
 
 	async def create_voice_client(self, channel):
 		voice = await self.bot.join_voice_channel(channel)
@@ -184,14 +326,53 @@ class Blindtest:
 	def __unload(self):
 		for state in self.voice_states.values():
 			try:
-				state.audio_player.cancel()
-				if state.voice:
-					self.bot.loop.create_task(state.voice.disconnect())
+				state.state.audio_player.cancel()
+				if state.state.voice:
+					self.bot.loop.create_task(state.state.voice.disconnect())
 			except:
 				pass
 
 	def get_categorie(self):
 		self.categorie = self.database.getcategorie()
+
+	@commands.command(pass_context=True, no_pm=True)
+	async def test(self, ctx):
+		"""just a test"""
+		msg = '{0}, {1}'.format(ctx.message.author.mention, ctx.message.content)
+		test = await self.bot.say(msg)
+		print(type(test))
+		print(type(ctx.message.author))
+
+	@commands.command(pass_context=True, no_pm=True)
+	async def start(self, ctx, *categorie):
+		"""Start a Blindtest
+
+		you can select multiple categorie if you want
+		"""
+
+		self.categorie = self.get_categorie()
+		state = self.get_songs_state(ctx.message.server)
+
+		if state.state.voice is None:
+			success = await ctx.invoke(self.summon)
+			if not success:
+				return
+
+		if state.started:
+			await self.bot.say('Blindtest already started ! join #`{}` and :speaker:`{}` to participate =)'.format(state.current.args['ctx'].message.channel.name, state.state.voice.channel.name))
+			return
+		else:
+			msg = await self.bot.say('Collecting Music...')
+			one = self.database.getallrandom()
+			if one is None:
+				await self.bot.edit_message(msg, 'No entry.')
+				return
+			for i in one:
+				i['ctx'] = ctx
+				await state.songs.put(i)
+				#await self.play(ctx, i['link'])
+			state.started = True
+			await self.bot.edit_message(msg, 'Done !')
 
 	@commands.command(pass_context=True, no_pm=True)
 	async def join(self, ctx, *, channel : discord.Channel):
@@ -221,18 +402,7 @@ class Blindtest:
 
 		return True
 
-	@commands.command(pass_context=True, no_pm=True)
-	async def start(self, ctx, *categorie):
-		"""Start a Blindtest
-
-		you can select multiple categorie if you want
-		"""
-		self.categorie = self.get_categorie()
-
-
-		pass
-
-	async def play(self, ctx, *, song : str):
+	async def play(self, ctx, song : str):
 		"""Plays a song.
 
 		If there is a song currently in the queue, then it is
@@ -269,10 +439,11 @@ class Blindtest:
 	async def volume(self, ctx, value : int):
 		"""Sets the volume of the currently playing song."""
 
-		state = self.get_voice_state(ctx.message.server)
-		if state.is_playing():
-			player = state.player
+		state = self.get_songs_state(ctx.message.server)
+		if state.state.is_playing():
+			player = state.state.player
 			player.volume = value / 100
+			state.volume = value / 100
 			await self.bot.say('Set the volume to {:.0%}'.format(player.volume))
 
 	@commands.command(pass_context=True, no_pm=True)

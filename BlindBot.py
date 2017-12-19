@@ -73,9 +73,9 @@ class DatabaseManager:
 	async def addentry(self, ctx, name : str, op : int, types : str, link : str):
 		"""Add a link to the link database
 
-		Need 4 parameters to works
-		a name, the opening/ending number, the type (OST, OPENING, etc) and the link
-		the opening/ending number can(t be ignored. if you don't use it, use 0 instead.)
+		Need 4 parameters to work:
+		A name, the opening/ending number, the type (OST, OPENING, etc) and the link.
+		The opening/ending number can't be ignored. If you don't use it, use 0 instead.
 		"""
 		msg = await self.bot.say('Starting...')
 		message = "Complete !"
@@ -103,15 +103,15 @@ class DatabaseManager:
 		"""Delete one entry from the database."""
 		msg = await self.bot.say('deleting entry {}...'.format(id))
 		self.database.deleteone(id)
-		await self.bot.edit_message(msg, 'Entry succesfuly deleted !')
+		await self.bot.edit_message(msg, 'Entry successfully deleted !')
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def listcategorie(self, ctx):
-		"""List all the categorie in the database.
+		"""List all the categories in the database.
 
-		To add a categorie, just add a song to the database with this categorie.
+		To add a category, just add a song to the database with this category.
 		"""
-		msg = await self.bot.say('Collecting information...')
+		msg = await self.bot.say('Collecting informations...')
 
 		self.get_categorie()
 
@@ -129,7 +129,7 @@ class DatabaseManager:
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def listbycategorie(self, ctx, categorie : str):
-		"""List by categorie"""
+		"""List by categories"""
 		msg = await self.bot.say('Collecting information...')
 
 		self.get_categorie()

@@ -2,7 +2,7 @@
 
 
 - Scores :
-	faire un tri avant d'afficher
+	Faire un tri avant d'afficher.
 
 - Réponse :
-	faire en sorte que plusieurs réponse puisse etre correct (et les gerer dans la base de donnée)
+	Faire en sorte que plusieurs réponses puissent être correctes (et les gérer dans la base de données).

@@ -250,15 +250,15 @@ class DatabaseManager:
 		"""Delete one entry from the database."""
 		msg = await self.bot.say('deleting entry {}...'.format(id))
 		self.database.deleteone(id)
-		await self.bot.edit_message(msg, 'Entry succesfuly deleted !')
+		await self.bot.edit_message(msg, 'Entry successfully deleted !')
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def listcategorie(self, ctx):
-		"""List all the categorie in the database.
+		"""List all the categories in the database.
 
-		To add a categorie, just add a song to the database with this categorie.
+		To add a category, just add a song to the database with this category.
 		"""
-		msg = await self.bot.say('Collecting information...')
+		msg = await self.bot.say('Collecting informations...')
 
 		self.get_categorie()
 
@@ -280,7 +280,7 @@ class DatabaseManager:
 
 	@commands.command(pass_context=True, no_pm=False)
 	async def listbycategorie(self, ctx, categorie : str):
-		"""List by categorie"""
+		"""List by categories"""
 		msg = await self.bot.say('Collecting information...')
 
 		self.get_categorie()

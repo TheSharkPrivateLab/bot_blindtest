@@ -225,6 +225,8 @@ class DatabaseManager:
 
 		Need 4 parameters to work:
 		A name, the opening/ending number, the type (OST, OPENING, etc) and the link
+		check this link to see all the supported site :
+		https://rg3.github.io/youtube-dl/supportedsites.html
 		"""
 		msg = await self.bot.say('Starting...')
 		message = "Complete !"
@@ -360,28 +362,28 @@ class Blindtest:
 		await self.bot.say(ctx.message.content)
 
 	@commands.command(pass_context=True, no_pm=True, hidden=True)
-	async def smiley_a(self, ctx, nb : int):
+	async def smiley(self, ctx, nb : int):
 		"""just for fun"""
-		#await self.bot.delete_message(ctx.message)
+		try:
+			await self.bot.delete_message(ctx.message)
+		except:
+			pass
 		msg = str()
 		for i in range(nb):
 			msg += "'-"
 			for x in range(i):
 				msg += ' '
 			msg += "'\n"
-		await self.bot.say(msg)
-
-	@commands.command(pass_context=True, no_pm=True, hidden=True)
-	async def smiley_b(self, ctx, nb : int):
-		"""just for fun"""
-		#await self.bot.delete_message(ctx.message)
-		for i in range(nb):
-			msg = str()
-			msg += "'-"
-			for x in range(i):
-				msg += ' '
-			msg += "'\n"
+		try:
 			await self.bot.say(msg)
+		except:
+			for i in range(nb):
+				msg = str()
+				msg += "'-"
+				for x in range(i):
+					msg += ' '
+				msg += "'\n"
+				await self.bot.send_message(ctx.message.channel, msg)
 
 	@commands.command(pass_context=True, no_pm=True)
 	async def start(self, ctx, *categorie):
@@ -458,39 +460,6 @@ class Blindtest:
 			await state.voice.move_to(summoned_channel)
 
 		return True
-
-	async def play(self, ctx, song : str):
-		"""Plays a song.
-
-		If there is a song currently in the queue, then it is
-		queued until the next song is done playing.
-
-		This command automatically searches as well from YouTube.
-		The list of supported sites can be found here:
-		https://rg3.github.io/youtube-dl/supportedsites.html
-		"""
-		state = self.get_voice_state(ctx.message.server)
-		opts = {
-			'default_search': 'auto',
-			'quiet': True,
-			'playlistrandom': True,
-		}
-
-		if state.voice is None:
-			success = await ctx.invoke(self.summon)
-			if not success:
-				return
-
-		try:
-			player = await state.voice.create_ytdl_player(song, ytdl_options=opts, after=state.toggle_next)
-		except Exception as e:
-			fmt = 'An error occurred while processing this request: ```py\n{}: {}\n```'
-			await self.bot.send_message(ctx.message.channel, fmt.format(type(e).__name__, e))
-		else:
-			player.volume = 0.6
-			entry = VoiceEntry(ctx.message, player)
-			await self.bot.say('Enqueued ' + str(entry))
-			await state.songs.put(entry)
 
 	@commands.command(pass_context=True, no_pm=True)
 	async def volume(self, ctx, value : int):
@@ -578,6 +547,11 @@ BDD = 'bdd.db'
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description='The Blindtest Bot =)')
 bot.add_cog(DatabaseManager(bot, BDD))
 bot.add_cog(Blindtest(bot, BDD))
+
+@bot.event
+async def on_message(msg):
+	if msg.author.id != 177447810726232064:
+		bot.process_commands(msg)
 
 @bot.event
 async def on_ready():

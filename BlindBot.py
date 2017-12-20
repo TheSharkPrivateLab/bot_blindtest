@@ -154,17 +154,19 @@ class SongState:
 			msg = None
 			await self.reponse.wait()
 			if self.current is not None:
-				await self.bot.send_message(self.current.args['ctx'].message.channel, '**YOU HAVE {}s !!**'.format(self.current.time_max))
+				await self.bot.send_message(self.current.channel, '**YOU HAVE {}s !!**'.format(self.current.time_max))
 				self.current.clock.start()
-				msg = await self.bot.wait_for_message(timeout=self.current.time_max, content=self.current.args['name'], channel=self.current.channel)
+				msg = self.current.args['ctx'].message
+				while self.current.clock.get_elapsed_time()[2] <= self.current.time_max and msg is not None and self.current.args['name'].lower() != msg.content.lower():
+					msg = await self.bot.wait_for_message(timeout=self.current.time_max - self.current.clock.get_elapsed_time()[2], channel=self.current.channel)
 				if msg is None:
 					await self.bot.send_message(self.current.channel, 'Sorry, that was {0}.'.format(self.current.args['name']))
 				else:
-					txt = '{0.mention} found the truth in {1[2]}'
 					if self.points.get(msg.author.id) is None:
 						self.points[msg.author.id] = 0
 						self.keys[msg.author.id] = msg.author
 					self.points[msg.author.id] += 1
+					txt = '{0.mention} found the truth in {1[2]}'
 					await self.bot.send_message(self.current.channel, txt.format(msg.author, self.current.clock.get_elapsed_time()))
 				if self.songs.empty():
 					msg = 'That was the last song...\n'
@@ -352,13 +354,34 @@ class Blindtest:
 	def get_categorie(self):
 		self.categorie = self.database.getcategorie()
 
-	@commands.command(pass_context=True, no_pm=True)
+	@commands.command(pass_context=True, no_pm=True, hidden=True)
 	async def test(self, ctx):
 		"""just a test"""
-		msg = '{0}, {1}'.format(ctx.message.author.mention, ctx.message.content)
-		test = await self.bot.say(msg)
-		print(type(test))
-		print(type(ctx.message.author))
+		await self.bot.say(ctx.message.content)
+
+	@commands.command(pass_context=True, no_pm=True, hidden=True)
+	async def smiley_a(self, ctx, nb : int):
+		"""just for fun"""
+		#await self.bot.delete_message(ctx.message)
+		msg = str()
+		for i in range(nb):
+			msg += "'-"
+			for x in range(i):
+				msg += ' '
+			msg += "'\n"
+		await self.bot.say(msg)
+
+	@commands.command(pass_context=True, no_pm=True, hidden=True)
+	async def smiley_b(self, ctx, nb : int):
+		"""just for fun"""
+		#await self.bot.delete_message(ctx.message)
+		for i in range(nb):
+			msg = str()
+			msg += "'-"
+			for x in range(i):
+				msg += ' '
+			msg += "'\n"
+			await self.bot.say(msg)
 
 	@commands.command(pass_context=True, no_pm=True)
 	async def start(self, ctx, *categorie):
@@ -367,7 +390,7 @@ class Blindtest:
 		you can select multiple categories if you want to
 		"""
 
-		self.categorie = self.get_categorie()
+		self.get_categorie()
 		state = self.get_songs_state(ctx.message.server)
 
 		if state.state.voice is None:
@@ -380,7 +403,24 @@ class Blindtest:
 			return
 		else:
 			msg = await self.bot.say('Collecting Music...')
-			one = self.database.getallrandom()
+			if len(categorie) == 0:
+				one = self.database.getallrandom()
+			else:
+				for i in categorie:
+					if i not in self.categorie:
+						await self.bot.edit_message(msg, 'No categorie named {}'.format(i))
+
+				temp = list()
+				one  = list()
+
+				for i in categorie:
+					temp.append(self.database.getfromcategorierandom(i))
+				for i in temp:
+					for x in i:
+						one.append(x)
+
+				one = tuple(one)
+
 			if one is None:
 				await self.bot.edit_message(msg, 'No entry.')
 				return

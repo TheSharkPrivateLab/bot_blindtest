@@ -170,7 +170,7 @@ class Database:
 	def getfromcategorie(self, categorie : str):
 		conn = sqlite3.connect(self.db_name)
 		cursor = conn.cursor()
-		cursor.execute("SELECT id FROM categorie WHERE ref=?", (categorie))
+		cursor.execute("SELECT id FROM categorie WHERE ref=?", (categorie,))
 		temp = cursor.fetchone()
 		if (temp is None):
 			conn.close()
@@ -183,6 +183,8 @@ class Database:
 
 	def getfromcategorierandom(self, categorie : str):
 		result = list(self.getfromcategorie(categorie))
+		if result == None:
+			return None
 		shuffle(result)
 		return (tuple(result))
 

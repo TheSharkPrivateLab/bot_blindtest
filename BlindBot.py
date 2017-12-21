@@ -12,13 +12,21 @@ if not discord.opus.is_loaded():
 	# note that on windows this DLL is automatically provided for you
 	discord.opus.load_opus('opus')
 
-# def sort(**points, **keys):
-# 	i = 1
-# 	my_keys = list()
-# 	for k in points:
-#		my_keys.append(k)
-# 	while i <= len(points):
-# 		if
+def sort(points : dict):
+	key = list()
+	for i in points:
+		key.append(i)
+	if len(points) <= 1:
+		return key
+	i = 1
+	while i != len(points):
+		if points[key[i - 1]] < points[key[i]]:
+			temp = key[i - 1]
+			key[i - 1] = key[i]
+			key[i] = temp
+			i = 0
+		i += 1
+	return key
 
 class VoiceEntry:
 	def __init__(self, message, player):
@@ -174,13 +182,24 @@ class SongState:
 			await self.reponse.wait()
 			if self.current is not None:
 				await self.bot.send_message(self.current.channel, '**YOU HAVE {}s !!**'.format(self.current.time_max))
-				self.current.clock.start()
+				fonction = ['$skip', '$stop']
+				test_fonction = False
+				test_none     = False
+				test_time     = False
+				test_same     = False
 				msg = self.current.args['ctx'].message
-				while self.current.clock.get_elapsed_time()[2] <= self.current.time_max and msg is not None and self.current.args['name'].lower() != msg.content.lower():
-					msg = await self.bot.wait_for_message(timeout=self.current.time_max - self.current.clock.get_elapsed_time()[2], channel=self.current.channel)
-				if msg is None:
+				self.current.clock.start()
+				while not test_time and not test_none and not test_same and not test_fonction:
+					msg = await self.bot.wait_for_message(timeout=self.current.time_max - self.current.clock.get_elapsed_time_s(), channel=self.current.channel)
+					if msg is None:
+						test_none = True
+					else:
+						test_fonction = msg.content in fonction and msg.author.id == self.current.requester.id
+						test_time = self.current.clock.get_elapsed_time_s() >= self.current.time_max
+						test_same = self.current.args['name'].lower() == msg.content.lower()
+				if test_none or test_time:
 					await self.bot.send_message(self.current.channel, 'Sorry, that was {0}.'.format(self.current.args['name']))
-				else:
+				elif not test_fonction:
 					if self.points.get(msg.author.id) is None:
 						self.points[msg.author.id] = 0
 						self.keys[msg.author.id] = msg.author
@@ -192,9 +211,9 @@ class SongState:
 					msg += 'Thanks for playing !\n'
 					await self.bot.send_message(self.current.channel, msg)
 					msg = '------**Score :**------\n'
-					#self.points, self.keys = sort(self.points, self.keys)
-					for i,point,key in zip(range(len(self.points)), self.points, self.keys):
-						msg += '{0} : {1.mention} With __{2}__ points !\n'.format(i + 1, self.keys[key], self.points[point])
+					keys = sort(self.points)
+					for i,key in zip(range(len(self.points)), keys):
+						msg += '{0} : {1.mention} With **{2}** points !\n'.format(i + 1, self.keys[key], self.points[key])
 					await self.bot.send_message(self.current.channel, msg)
 					self.started = False
 			self.state.skip()
@@ -611,7 +630,7 @@ async def on_message(msg):
 			return
 	else:
 		await bot.process_commands(msg)
-#romeo :
+
 @bot.event
 async def on_ready():
 	print('Logged in as:\n{0} (ID: {0.id})'.format(bot.user))

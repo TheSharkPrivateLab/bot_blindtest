@@ -387,6 +387,10 @@ class Blindtest:
 	@commands.command(pass_context=True, no_pm=True, hidden=True)
 	async def smiley(self, ctx, nb : int):
 		"""just for fun"""
+		if ctx.message.author.id == 177447810726232064:
+			msg = await self.bot.say('NON !')
+			sleep(2)
+			await self.bot.delete_message(msg)
 		try:
 			await self.bot.delete_message(ctx.message)
 		except:
@@ -607,7 +611,7 @@ async def on_message(msg):
 			return
 	else:
 		await bot.process_commands(msg)
-#romeo : 177447810726232064
+#romeo :
 @bot.event
 async def on_ready():
 	print('Logged in as:\n{0} (ID: {0.id})'.format(bot.user))

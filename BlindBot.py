@@ -598,8 +598,6 @@ async def on_message(msg):
 	if muted[server.id].get(author.id) is not None:
 		etime = muted[server.id][author.id][0].get_elapsed_time_s()
 		mtime = muted[server.id][author.id][1]
-		print(mtime)
-		print(etime)
 		if etime >= mtime:
 			del muted[server.id][author.id]
 			await bot.process_commands(msg)

@@ -75,7 +75,11 @@ class Clock:
 		self.start_time = None
 
 	def __str__(self):
-		return "started time : {0[1]}m {0[2]}".format(self.get_time())
+		if self.start_time is None:
+			return "Clock has not started yet."
+		msg = "Started time : {0[0]}h {0[1]}m {0[2]}s\n".format(self.time_to_list(self.start_time))
+		msg += "Elapsed time : {0[0]}h {0[1]}m {0[2]}s".format(self.get_elapsed_time())
+		return msg
 
 	def start(self):
 		self.start_time = self.get_time()
@@ -86,20 +90,35 @@ class Clock:
 	def restart(self):
 		return self.start()
 
-	def get_elapsed_time(self):
+	def time_to_list(self, time):
 		result = list()
-		temp = self.get_time()
 		for i in range(3):
-			result.append(temp[i] - self.start_time[i])
-		return tuple(result)
+			result.append(int((time / 60 ** i) % 60))
+		temp = result[0]
+		result[0] = result[2]
+		result[2] = temp
+		return result
+
+	def get_elapsed_time(self):
+		time = self.get_elapsed_time_s()
+		result = self.time_to_list(time)
+		return result
+
+	def get_elapsed_time_s(self):
+		result = self.get_time() - self.start_time
+		return result
 
 	def get_time(self):
 		temp = ctime(time())
 		temp = temp[11:-5]
-		result = list()
+		liste = list()
 		for i in temp.split(':'):
-			result.append(int(i))
-		return tuple(result)
+			liste.append(int(i))
+		result = int()
+		result += liste[2]
+		result += liste[1] * 60
+		result += liste[0] * (60 ** 2)
+		return result
 
 class SongEntry:
 	def __init__(self, **args):
@@ -359,7 +378,11 @@ class Blindtest:
 	@commands.command(pass_context=True, no_pm=True, hidden=True)
 	async def test(self, ctx):
 		"""just a test"""
-		await self.bot.say(ctx.message.content)
+		msg = 'PENIS\n'
+		for i in ctx.message.mentions:
+			msg += i.name
+			msg += '\n'
+		await self.bot.say(msg)
 
 	@commands.command(pass_context=True, no_pm=True, hidden=True)
 	async def smiley(self, ctx, nb : int):
@@ -544,15 +567,49 @@ class Blindtest:
 
 BDD = 'bdd.db'
 
+muted = dict()
+
+@commands.command(pass_context=True, no_pm=True)
+async def mute(ctx, seconde : int):
+	"""Mute somoone"""
+	global muted
+	users = ctx.message.mentions
+	server = ctx.message.server
+	for i in users:
+		if muted[server.id].get(i.id) is not None:
+			await bot.say('{0.mention} already muted'.format(i))
+		else:
+			muted[server.id][i.id] = (Clock(), seconde)
+			muted[server.id][i.id][0].start()
+			await bot.say('{0.mention} muted !'.format(i))
+
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description='The Blindtest Bot =)')
 bot.add_cog(DatabaseManager(bot, BDD))
 bot.add_cog(Blindtest(bot, BDD))
+bot.add_command(mute)
 
 @bot.event
 async def on_message(msg):
-	if msg.author.id != 177447810726232064:
-		bot.process_commands(msg)
-
+	global muted
+	server = msg.server
+	author = msg.author
+	if muted.get(server.id) is None:
+		muted[server.id] = dict()
+	if muted[server.id].get(author.id) is not None:
+		etime = muted[server.id][author.id][0].get_elapsed_time_s()
+		mtime = muted[server.id][author.id][1]
+		print(mtime)
+		print(etime)
+		if etime >= mtime:
+			del muted[server.id][author.id]
+			await bot.process_commands(msg)
+			return
+		else:
+			await bot.delete_message(msg)
+			return
+	else:
+		await bot.process_commands(msg)
+#romeo : 177447810726232064
 @bot.event
 async def on_ready():
 	print('Logged in as:\n{0} (ID: {0.id})'.format(bot.user))
